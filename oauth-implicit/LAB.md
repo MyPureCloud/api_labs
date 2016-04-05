@@ -4,7 +4,8 @@ When the page loads, the startApp function is first called.  It will try to get 
 
 1. Start by modifying the getAccessTokenFromUrl function. If you app has an access token, the url will look something like:
 
-    ``` http://localhost:8080/index.html#access_token=4gqFY-z24234OpMSG0X27JDuRi0Y-RvPQ6Rm0qSHj1Jd05vEGxTsssEedSw0vFAuS4YOvwZwAcKi-kw&expires_in=86399&token_type=bearer
+    ``` 
+    http://localhost:8080/index.html#access_token=<token>&expires_in=86399&token_type=bearer
     ```
 
     We want to get the access_token token out of there.  If your url doesn't contain the string "access_token" return null.  If it does, return the value of the access_token, you can use the getParameterByName method and pass in "access_token" to the function call and it will return your token.
