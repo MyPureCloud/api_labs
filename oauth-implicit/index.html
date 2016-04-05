@@ -3,16 +3,36 @@
 <head>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-MfvZlkHCEqatNoGiOXveE8FIwMzZg4W85qfrfIFBfYc= sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
     <script src='https://code.jquery.com/jquery-1.11.3.min.js'></script>
-    <script src='javascript/purecloud-api-min.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.js'></script>
+    <script src='javascript/code.js'></script>
     <title>OAuth - Implicit</title>
-    <style type="text/css">
-
-    </style>
-    </head>
+</head>
 <body>
 
     <div id='results'>
-        Hello
+
     </div>
+
+    <script id="entry-template" type="text/x-handlebars-template">
+      <div class="container">
+        <div class='row'>
+            <div class='col-md-4'>
+                <img src="{{picture}}" style="width:100%"></img>
+            </div>
+            <div class='col-md-8'>
+                <h1>{{name}}</h1>
+                <h2>{{title}}</h2>
+                <h3>{{email}}</h3>
+                <h3>{{department}}</h3>
+                <br/>
+                <br/>
+                <h4>Addresses</h4>
+                {{#addresses}}
+                <b>{{type}}</b>{{display}} ({{mediaType}})<br/>
+                {{/addresses}}
+            </div>
+        </div>
+      </div>
+    </script>
 </body>
 </html>

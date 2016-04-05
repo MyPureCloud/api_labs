@@ -1,3 +1,11 @@
+//helper method to get the access_token value out of the hash
+function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\#&]" + name + "=([^&#]*)"),
+      results = regex.exec(location.hash);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
 //get the access token if it is available, otherwise return null;
 function getAccessTokenFromUrl(){
     var currentUrlHash = window.location.hash;
@@ -21,24 +29,29 @@ function issueRedirect(){
 
 function getCurrentUserData(authToken){
 
-    //TODO: Update this request with the url to /api/v1/users/me
+    //TODO: Update this request with the url to /api/v2/users/me
     //TODO: Set the proper authorization header
     $.ajax({
             url: "UPDATE ME!!",
             type: "GET",
             beforeSend: function(xhr){xhr.setRequestHeader('Authorization', "UPDATE ME!!");},
             success: function(data) {
-                displayUserInfo(JSON.parse(data));
+                displayUserInfo(data);
             }
         });
 }
 
+//This function is provided for you, nothing to change here
 function displayUserInfo(userInfo){
+    var source   = $("#entry-template").html();
+    var template = Handlebars.compile(source);
 
+    userInfo.picture = userInfo.images[0].imageUri;
+    $("#results").html(template(userInfo))
 }
 
 //this method is called after the page loads
-$(document).ready(function(){
+function startApp(){
     var accessToken = getAccessTokenFromUrl();
 
     if(accessToken === null){
@@ -46,5 +59,6 @@ $(document).ready(function(){
         return;
     }
 
-    var me = getCurrentUserData(authToken);
-});
+    var me = getCurrentUserData(accessToken);
+}
+$(document).ready(startApp);
