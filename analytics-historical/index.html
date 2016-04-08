@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-MfvZlkHCEqatNoGiOXveE8FIwMzZg4W85qfrfIFBfYc= sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+    <script src='https://code.jquery.com/jquery-1.11.3.min.js'></script>
+    <script src='javascript/purecloud-api.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.js'></script>
+    <script src='javascript/code.js'></script>
+
+    <title>Analytics Query</title>
+</head>
+<body>
+
+    <div id='results'>
+    </div>
+
+    <script id="entry-template" type="text/x-handlebars-template">
+
+      {{#results}}
+      <br/>
+      <label>{{group.queueId}} - {{group.mediaType}}</label>
+      <div class="container">
+           <table class="table">
+               <tr>
+                  <th>
+                      <b>Statistic</b>
+                  </th>
+                  <th>
+                      <b>Count</b>
+                  </th>
+                  <th>
+                      <b>Max</b>
+                  </th>
+                  <th>
+                      <b>Sum</b>
+                  </th>
+
+              </tr>
+
+      {{#data}}
+
+        {{#metrics}}
+        <tr>
+            <td>
+                {{metric}}
+            </td>
+            <td>
+                {{stats.count}}
+            </td>
+            <td>
+                {{stats.max}}
+            </td>
+            <td>
+                {{stats.sum}}
+            </td>
+        </tr>
+        {{/metrics}}
+        {{/data}}
+    </table>
+      </div>
+      {{/results}}
+
+    </script>
+</body>
+</html>
