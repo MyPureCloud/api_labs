@@ -14,3 +14,5 @@ When the page loads, the startApp function is first called.  It will try to get 
 3. Finally, once we have our authentication token, we need to make an outbound request to get the current user's information. In the getCurrentUserData method there is an ajax call to get that information.  Update the url parameter with the api endpoint to call (https://api.mypurecloud.com/api/v2/users/me)  and update the beforeSend value to include your authorization token in the header. The value of the authorization header needs to contain the token type, for OAuth, that is bearer so the value would look like "Bearer AUTHTOKENVALUE"
 
 4. Start your web server and navigate to http://localhost:8080/index.html
+
+5. The preexisting code will handle displaying the data using a [Handlebars.js](http://handlebarsjs.com/) template.
