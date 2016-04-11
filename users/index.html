@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet" integrity="sha256-MfvZlkHCEqatNoGiOXveE8FIwMzZg4W85qfrfIFBfYc= sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
+    <script src='https://code.jquery.com/jquery-1.11.3.min.js'></script>
+    <script src='javascript/purecloud-api.js'></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.js'></script>
+    <script src='javascript/code.js'></script>
+
+    <title>Users</title>
+</head>
+<body>
+
+    <div id='results'>
+    </div>
+
+    <script id="entry-template" type="text/x-handlebars-template">
+        <div class="container">
+             <table class="table">
+                 <tr>
+                     <th>
+
+                     </th>
+                    <th>
+                        Name
+                    </th>
+                    <th>
+                        Title
+                    </th>
+                    <th>
+                        Email
+                    </th>
+                    <th>
+                        Department
+                    </th>
+                </tr>
+      {{#entities}}
+
+        <tr>
+            <td>
+                <img src="{{picture}}" style="width:48px;height:48px"></img>
+            </td>
+            <td>{{name}}</td>
+            <td>{{title}}</td>
+            <td>{{email}}</td>
+            <td>{{department}}</td>
+        </tr>
+
+      {{/results}}
+  </table>
+    </div>
+
+    </script>
+</body>
+</html>
