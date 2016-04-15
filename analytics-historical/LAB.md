@@ -1,4 +1,4 @@
-This tutorial will query the Javascript SDK to query the Analytics endpoint to get information about a queue for the past day.  It assumes that you already have a Implicit Grant client id with a redirect url of http://localhost:8080/index.html.  Instructions for creating a client id can be found at https://developer.mypurecloud.com/api/rest/authorization/create-oauth-client-id.html
+This tutorial will use the Javascript SDK to query the Analytics endpoint to get information about a queue for the past day.  It assumes that you already have a Implicit Grant client id with a redirect url of http://localhost:8080/index.html.  Instructions for creating a client id can be found at https://developer.mypurecloud.com/api/rest/authorization/create-oauth-client-id.html
 
 1. Start by modifying the pureCloudSession.authorize method call, by adding the client id of your OAuth client as the first parameter. The .authorize method will do the leg work of of the authentication by issuing a redirect automatically if needed. The .done method is called after the page has an auth token.
 

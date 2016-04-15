@@ -1,4 +1,4 @@
-var pureCloudSession = new PureCloudSession( 'inindca.com');
+var pureCloudSession = new PureCloudSession( 'mypurecloud.com');
 var routingapi = new RoutingApi(pureCloudSession);
 
 redirectUrl = "http://localhost:8080/index.html"
