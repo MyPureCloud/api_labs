@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+
+	<script type="text/javascript" src="javascript/purecloud-api-min.js"></script>
+	<script src="https://code.jquery.com/jquery-1.12.3.min.js" integrity="sha256-aaODHAgvwQW1bFOGXMeX+pC4PZIPsvn2h1sArYOhgXQ=" crossorigin="anonymous"></script>
+
+	<script type="text/javascript">
+		// Create new instances
+		var pureCloudSession = new PureCloudSession();
+		var usersApi = new UsersApi(pureCloudSession);
+		var presenceApi = new PresenceApi(pureCloudSession);
+
+		var userId = '';
+
+		// jQuery calls this when the DOM is available
+		$(document).ready(function() {
+			// Handle the logout button click
+			$('button#logout').click(function() {
+				// Redirect the user to the logout page. This destroys the session.
+				window.location = 'https://login.mypurecloud.com/logout';
+			});
+
+			// Handle the getPresence button click
+			$('button#getPresence').click(function() {
+				// Get user's current presence
+				presenceApi.getUserIdPresencesSource(userId, 'PURECLOUD').done(function(presence) {
+					// Look up presence definition
+					presenceApi.getPresenceId(presence.presenceDefinition.id).done(function(presence) {
+						console.debug(presence);
+						
+						// Write presence to body
+						$('span#presence').text(presence.languageLabels.en_US);
+					});
+				});
+			});
+
+			// Invoke OAuth Implicit Grant flow
+			var clientId = 'babbc081-0761-4f16-8f56-071aa402ebcb';
+			var redirectUri = 'http://localhost:8080/';
+			pureCloudSession.authorize(clientId, redirectUri).done(function(){
+				// Invoke GET /api/v2/users/me
+				usersApi.getMe('presence').done(function(me) {
+					console.debug(me);
+
+					// Write formatted response to body
+					$('div#output').append('<pre>'+JSON.stringify(me, null, 2)+'</pre>');
+
+					// Store user ID
+					userId = me.id;
+				});
+			});
+		});
+	</script>
+</head>
+<body>
+	<button id="logout">Log Out</button>
+	<button id="getPresence">Get Presence</button>
+	<br />
+
+	Presence: <span id="presence"></span>
+	<br />
+
+	User object:<br />
+	<div id="output"></div>
+</body>
+</html>
