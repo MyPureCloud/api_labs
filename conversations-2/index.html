@@ -49,6 +49,15 @@
 						// Write presence to body
 						$('span#presence').text(presence.languageLabels.en_US);
 					});
+
+                    // Get list of presences available
+                    presenceApi.getPresencedefinitions().done(function(presenceData){
+                        for (var x=0; x< Object.keys(presenceData.entities).length; x++){
+                            var presence = presenceData.entities[x];
+                            $('div#presenceButtons').append('<button class="btn btn-default" onclick="setPresence(\'' + presence.id +'\')">' + 
+                                presence.languageLabels.en_US +'</button>');
+                        }
+                    });
 				});
 
 				// Create a notification channel
@@ -249,15 +258,32 @@
 				console.error(err);
 			});
 		}
+
+        function setPresence(presenceId){
+            // Create request body
+            var setPresence = {
+                "presenceDefinition" : {
+                    "id": presenceId
+                }
+            };
+
+            // Patch presence
+            presenceApi.patchUserIdPresencesSource(user.id, 'PURECLOUD', setPresence);
+        }
 	</script>
 </head>
 <body>
 	<div class="row">
 		<div class="col-md-10 col-md-offset-1">
 			<h1>Buttons</h1>
-			<p>
+			<p class="form-inline">
 				<button id="logout" class="btn btn-default">Log Out</button>
 			</p>
+
+			<h1>Presence Buttons</h1>
+			<p class="form-inline">
+    			<div id="presenceButtons"></div>
+    		</p>
 
 			<p>
 				Presence: <span id="presence"></span>
