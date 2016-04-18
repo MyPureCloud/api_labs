@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Conversations Lab #2</title>
+
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+	<style type="text/css">
+		#messages {
+			max-height: 500px;
+			overflow-y: scroll;
+			overflow-x: hidden;
+		}
+	</style>
+
+	<script type="text/javascript" src="javascript/purecloud-api-min.js"></script>
+	<script src="https://code.jquery.com/jquery-1.12.3.min.js" integrity="sha256-aaODHAgvwQW1bFOGXMeX+pC4PZIPsvn2h1sArYOhgXQ=" crossorigin="anonymous"></script>
+	<script src="https://code.jquery.com/ui/1.12.0-rc.1/jquery-ui.min.js" integrity="sha256-mFypf4R+nyQVTrc8dBd0DKddGB5AedThU73sLmLWdc0=" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+	<script type="text/javascript">
+		// Create new instances for API stuff
+		var pureCloudSession = new PureCloudSession();
+		var usersApi = new UsersApi(pureCloudSession);
+		var presenceApi = new PresenceApi(pureCloudSession);
+		var conversationsApi = new ConversationsApi(pureCloudSession);
+        var notificationsapi = new NotificationsApi(pureCloudSession);
+
+		// Other local variables
+		var user = {};
+        var webSocket = null;
+        var userPresenceTopic = '';
+        var conversationsTopic = '';
+
+		// jQuery calls this when the DOM is available
+		$(document).ready(function() {
+			// Invoke OAuth Implicit Grant flow
+			// If already authorized, this will return immediately without a redirect
+			var clientId = 'babbc081-0761-4f16-8f56-071aa402ebcb';
+			var redirectUri = 'http://localhost:8080/';
+			pureCloudSession.authorize(clientId, redirectUri).done(function(){
+				// Invoke API
+				usersApi.getMe('presence').done(function(me) {
+					// Store user object
+					user = me;
+
+					// Look up presence definition
+					presenceApi.getPresenceId(me.presence.presenceDefinition.id).done(function(presence) {
+						// Write presence to body
+						$('span#presence').text(presence.languageLabels.en_US);
+					});
+				});
+
+				// Create a notification channel
+                notificationsapi.postChannels().done(function(data){
+                    // Start a new web socket using the connect Uri of the channel
+                    webSocket = new WebSocket(data.connectUri);
+                    webSocket.onopen = function(){
+                        // Subscribe to user presence
+                        userPresenceTopic = 'v2.users.' + user.id + '.presence';
+                        notificationsapi.postChannelsChannelIdSubscriptions(data.id, [{"id": userPresenceTopic}]);
+
+                        // Subscribe to user's conversations
+                        conversationsTopic = 'v2.users.' + user.id + '.conversations'
+                        notificationsapi.postChannelsChannelIdSubscriptions(data.id, [{"id": conversationsTopic}]);
+                    };
+
+	                // Message received callback function
+	                webSocket.onmessage = function(message) {
+	                    // Parse string message into JSON object
+	                    var data = JSON.parse(message.data);
+
+	                    // Presence update
+	                    if (data.topicName == userPresenceTopic){
+							presenceApi.getPresenceId(data.eventBody.presenceDefinition.id).done(function(presence) {
+								// Write presence to body
+								$('span#presence').text(presence.languageLabels.en_US);
+							});
+	                    }
+	                    // Conversations update
+	                    else if (data.topicName == conversationsTopic){
+	                    	// data.eventBody is a conversation object
+	                        var call = data.eventBody;
+
+	                        // Add or update
+	                        if ($('#'+data.eventBody.id).length == 0) {
+	                        	// Add to UI
+								$('table#queue').append(
+									'<tr id="' + call.id + '">' + 
+										'<td id="' + call.id + '-id">' + call.id + '</td>' + 
+										'<td id="' + call.id + '-recordingState">' + call.recordingState + '</td>' + 
+										'<td id="' + call.id + '-participants">' + makeParticipants(call) + '</td>' + 
+									'</tr>');
+	                        } else {
+	                        	// Generate participants string
+	                        	var participants = makeParticipants(call);
+
+	                        	// Call ended? (no active participants)
+	                        	if (participants == '') {
+	                        		// Remove conversation
+	                        		$('#'+call.id).remove();
+	                        	} else {
+	                        		// Update UI
+		                        	$('#'+call.id+'-recordingState').html(call.recordingState);
+		                        	$('#'+call.id+'-participants').html(participants);
+		                        }
+	                        }
+	                    }
+	                    // Heartbeat
+	                    else if (data.topicName == 'channel.metadata') {
+	                        console.log('thump... THUMP...');
+	                    }
+	                    // Unknown
+	                    else {
+	                        console.warn('Unexpected topic: ' + data.topicName)
+	                        console.debug(data);
+	                    }
+
+	                    // Log message to UI
+	                    $('div#messages').append('<pre>' + new Date().toLocaleTimeString() + ' - ' + 
+	                        JSON.stringify(JSON.parse(message.data),null,2) + '</pre>');
+
+	                    // Scroll to bottom of messages
+	                    if ($('#autoscroll').prop('checked')) {
+							$('#messages').scrollTop($('#messages')[0].scrollHeight);
+						}
+	                };
+                });
+			});
+
+			// Handle the logout button click
+			$('button#logout').click(function() {
+				// Redirect the user to the logout page. This destroys the session.
+				window.location = 'https://login.mypurecloud.com/logout';
+			});
+
+			// Handle dial button click
+			$('button#dial').click(function() {
+				// Create request body
+				var body = {
+					"phoneNumber":$('input#dialstring').val()
+				};
+
+				// Invoke API
+				conversationsApi.postCalls(body)
+					.done(function(result) {
+						// Clear dialstring from text box
+						$('input#dialstring').val('');
+					}).error(function(err){
+						console.error(err);
+					});
+			});
+		});
+
+		function makeParticipants(call) {
+			// YOU are always the first participant. If you're disconnected, return empty
+			if (call.participants[0].endTime) { return ''; }
+
+			// Process each participant
+			var participants = '';
+			for (var i=0; i<call.participants.length; i++) {
+				participants += makeParticipant(call.participants[i], call.id);
+			}
+
+			// Return participant string
+			return participants;
+		}
+
+		function makeParticipant(participant, callId) {
+			// Don't show disconnected participants
+			if (participant.endTime) { return ''; }
+
+			// Determine participant name
+			var name = participant.name || '<i>Unknown</i>';
+			if (participant.userId == user.id) {
+				// This is "you". If it weren't you could look up the user's display name via the ID or by requesting user.selfUri (same thing)
+				name = user.name + ' <strong>[YOU]</strong>';
+			}
+
+			// Return participant info
+			return name + ' (' + participant.address + ') ' +  
+				'<button class="btn btn-default btn-sm' + (participant.calls[0].muted ? ' btn-info' : '') + '" onclick="mute(\'' + callId + '\',\'' + participant.id + '\',' + !participant.calls[0].muted + ')">' + (participant.calls[0].muted ? 'Unmute': 'Mute') + '</button> ' +
+				'<button class="btn btn-default btn-sm' + (participant.calls[0].held ? ' btn-info' : '') + '" onclick="hold(\'' + callId + '\',\'' + participant.id + '\',' + !participant.calls[0].held + ')">' + (participant.calls[0].held ? 'Unhold ': 'Hold') + '</button> ' +
+				'<button class="btn btn-default btn-sm' + (participant.calls[0].recording ? ' btn-info' : '') + '" onclick="record(\'' + callId + '\',\'' + participant.id + '\',' + !participant.calls[0].recording + ')">' + (participant.calls[0].recording ? 'Stop Recording': 'Record') + '</button> ' +
+				'<button class="btn btn-default btn-sm" onclick="disconnect(\'' + callId + '\',\'' + participant.id + '\')">Disconnect</button> ' +
+				'<br />';
+		}
+
+		// Mute participant
+		function mute(callId, participantId, muteOn) {
+			// Create request body
+			var body = {
+				"muted": muteOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Hold participant
+		function hold(callId, participantId, holdOn) {
+			// Create request body
+			var body = {
+				"held": holdOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Record participant
+		function record(callId, participantId, recordOn) {
+			// Create request body
+			var body = {
+				"recording": recordOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Disconnect participant
+		function disconnect(callId, participantId) {
+			// Create request body
+			var body = {
+				"state": "disconnected"
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+	</script>
+</head>
+<body>
+	<div class="row">
+		<div class="col-md-10 col-md-offset-1">
+			<h1>Buttons</h1>
+			<p>
+				<button id="logout" class="btn btn-default">Log Out</button>
+			</p>
+
+			<p>
+				Presence: <span id="presence"></span>
+			</p>
+
+			<h1>User Queue</h1>
+
+			<p class="form-inline">
+				<label for="dialstring">Dialstring</label>
+				<input type="text" class="form-control" id="dialstring" placeholder="3172222222" />
+				<button class="btn btn-default" id="dial">Dial</button>
+			</p>
+
+			<table id="queue" class="table table-striped table-bordered">
+				<tr>
+					<th>ID</th>
+					<th>Recording</th>
+					<th>Participants</th>
+				</tr>
+			</table>
+
+
+		    <h1>Messages</h1>
+		    <input type="checkbox" id="autoscroll" checked="true"> Auto-scroll?</input>
+		    <div id="messages"></div>
+		</div>
+	</div>
+</body>
+</html>
