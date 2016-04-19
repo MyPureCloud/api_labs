@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Conversations Lab #1</title>
+
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+	<style type="text/css">
+	</style>
+
+	<script type="text/javascript" src="javascript/purecloud-api-min.js"></script>
+	<script src="https://code.jquery.com/jquery-1.12.3.min.js" integrity="sha256-aaODHAgvwQW1bFOGXMeX+pC4PZIPsvn2h1sArYOhgXQ=" crossorigin="anonymous"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+	<script type="text/javascript">
+		// Create new instances for API stuff
+		var pureCloudSession = new PureCloudSession();
+		var usersApi = new UsersApi(pureCloudSession);
+		var presenceApi = new PresenceApi(pureCloudSession);
+		var conversationsApi = new ConversationsApi(pureCloudSession);
+
+		// Other local variables
+		var user = {};
+		var interval;
+
+		// jQuery calls this when the DOM is available
+		$(document).ready(function() {
+			// Invoke OAuth Implicit Grant flow
+			// If already authorized, this will return immediately without a redirect
+			var clientId = 'babbc081-0761-4f16-8f56-071aa4024jd9';
+			var redirectUri = 'http://localhost:8080/';
+			pureCloudSession.authorize(clientId, redirectUri).done(function(){
+				// Invoke API
+				usersApi.getMe('presence').done(function(me) {
+					// Store user object
+					user = me;
+
+					// Start queue polling
+					$('button#togglePolling').click();
+
+					// Get presence
+					$('button#getPresence').click();
+				});
+			});
+
+			// Handle the logout button click
+			$('button#logout').click(function() {
+				// Redirect the user to the logout page. This destroys the session.
+				window.location = 'https://login.mypurecloud.com/logout';
+			});
+
+			// Handle the getPresence button click
+			$('button#getPresence').click(function() {
+				// Get user's current presence
+				presenceApi.getUserIdPresencesSource(user.id, 'PURECLOUD').done(function(presence) {
+					// Look up presence definition
+					presenceApi.getPresenceId(presence.presenceDefinition.id).done(function(presence) {
+						// Write presence to body
+						$('span#presence').text(presence.languageLabels.en_US);
+					});
+				});
+			});
+
+			// Handle the toggle polling button click
+			$('button#togglePolling').click(function() {
+				if (interval) {
+					clearInterval(interval);
+					interval = null;
+					$('button#togglePolling').text('Start Queue Polling');
+				} else {
+					interval = setInterval(checkQueue, 1000);
+					$('button#togglePolling').text('Stop Queue Polling');
+				}
+			});
+
+			// Handle dial button click
+			$('button#dial').click(function() {
+				// Create request body
+				var body = {
+					"phoneNumber":$('input#dialstring').val()
+				};
+
+				// Invoke API
+				conversationsApi.postCalls(body)
+					.done(function(result) {
+						// Clear dialstring from text box
+						$('input#dialstring').val('');
+					}).error(function(err){
+						console.error(err);
+					});
+			});
+		});
+
+		// Gets current queue contents and displays it
+		function checkQueue() {
+			console.debug("Checking queue...");
+			// Invoke API
+			conversationsApi.getCalls().done(function(calls) {
+				// Delete all but the top row
+				$('table#queue').find('tr:gt(0)').remove();
+
+				// Iterate through calls
+				for (var i=0; i<calls.entities.length; i++) {
+					// Get call object
+					var call = calls.entities[i];
+
+					// Iterate through participants
+					var participants = '';
+					for (var c=0; c<call.participants.length; c++) {
+						// Get participant object
+						var participant = call.participants[c];
+
+						// Determine participant name
+						var name = participant.name || '<i>Unknown</i>';
+						if (participant.user) {
+							if (participant.user.id == user.id) {
+								// This is "you". If it weren't you could look up the user's display name via the ID or by requesting user.selfUri (same thing)
+								name = user.name + ' <strong>[YOU]</strong>';
+							}
+						}
+
+						// Append participant info
+						participants += name + ' (' + participant.address + ') ' +  
+							'<button class="btn btn-default btn-sm' + (participant.muted ? ' btn-info' : '') + '" onclick="mute(\'' + call.id + '\',\'' + participant.id + '\',' + !participant.muted + ')">' + (participant.muted ? 'Unmute': 'Mute') + '</button> ' +
+							'<button class="btn btn-default btn-sm' + (participant.held ? ' btn-info' : '') + '" onclick="hold(\'' + call.id + '\',\'' + participant.id + '\',' + !participant.held + ')">' + (participant.held ? 'Unhold ': 'Hold') + '</button> ' +
+							'<button class="btn btn-default btn-sm' + (participant.recording ? ' btn-info' : '') + '" onclick="record(\'' + call.id + '\',\'' + participant.id + '\',' + !participant.recording + ')">' + (participant.recording ? 'Stop Recording': 'Record') + '</button> ' +
+							'<button class="btn btn-default btn-sm" onclick="disconnect(\'' + call.id + '\',\'' + participant.id + '\')">Disconnect</button> ' +
+							'<br />';
+					}
+
+					// Add call row to table
+					$('table#queue').append(
+						'<tr id="' + call.id + '">' + 
+							'<td>' + call.id + '</td>' + 
+							'<td>' + call.recordingState + '</td>' + 
+							'<td>' + participants + '</td>' + 
+						'</tr>');
+				}
+			});
+		}
+
+		// Mute participant
+		function mute(callId, participantId, muteOn) {
+			// Create request body
+			var body = {
+				"muted": muteOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Hold participant
+		function hold(callId, participantId, holdOn) {
+			// Create request body
+			var body = {
+				"held": holdOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Record participant
+		function record(callId, participantId, recordOn) {
+			// Create request body
+			var body = {
+				"recording": recordOn
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+
+		// Disconnect participant
+		function disconnect(callId, participantId) {
+			// Create request body
+			var body = {
+				"state": "disconnected"
+			};
+
+			// Invoke API
+			conversationsApi.patchCallsCallIdParticipantsParticipantId(callId, participantId, body).done(function(result) {
+				// Result will be empty here
+				//console.debug(result);
+			}).error(function(err){
+				console.error(err);
+			});
+		}
+	</script>
+</head>
+<body>
+	<div class="row">
+		<div class="col-md-10 col-md-offset-1">
+			<h1>Buttons</h1>
+			<p>
+				<button id="logout" class="btn btn-default">Log Out</button>
+				<button id="getPresence" class="btn btn-default">Get Presence</button>
+				<button id="togglePolling" class="btn btn-default">Start Queue Polling</button>
+			</p>
+
+			<p>
+				Presence: <span id="presence"></span>
+			</p>
+
+			<h1>User Queue</h1>
+
+			<p class="form-inline">
+				<label for="dialstring">Dialstring</label>
+				<input type="text" class="form-control" id="dialstring" placeholder="3172222222" />
+				<button class="btn btn-default" id="dial">Dial</button>
+			</p>
+
+			<table id="queue" class="table table-striped table-bordered">
+				<tr>
+					<th>ID</th>
+					<th>Recording</th>
+					<th>Participants</th>
+				</tr>
+			</table>
+		</div>
+	</div>
+</body>
+</html>
