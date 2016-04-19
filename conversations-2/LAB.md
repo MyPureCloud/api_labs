@@ -31,6 +31,10 @@ notificationsapi.postChannels().done(function(data){
 
 After creating a channel in PureCloud, use the channel's connect URI to create a [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_client_applications) object. Then provide handler functions for the _onopen_ and _onmessage_ properties.
 
+```
+webSocket = new WebSocket(data.connectUri);
+```
+
 The function for _onopen_ will make Platform API calls to subscribe to the desired topics using `POST /api/v2/notifications/channels/{channelId}/subscriptions`. 
 
 ```
