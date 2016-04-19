@@ -32,13 +32,13 @@ function createUser(){
 
     //TODO: Update the new user's data
     var newUserData = {
-       name: "*** testuing 2",
-       department: "testing",
-       email: "testin234234234234g@inindca.com",
+       name: "",
+       department: "",
+       email: "",
        title: "",
-       password: "tddasd32##@332fdzstl@!)#(sdf)",
+       password: "",
        version: 1
-    }
+   };
 
     usersapi.postUsers(newUserData).done(function(user){
         loadUsers();

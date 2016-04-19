@@ -3,14 +3,15 @@ function getParameterByName(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
     var regex = new RegExp("[\\#&]" + name + "=([^&#]*)"),
       results = regex.exec(location.hash);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+    return results === null ? null : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
 //get the access token if it is available, otherwise return null;
 function getAccessTokenFromUrl(){
     var currentUrlHash = window.location.hash;
 
-    //TODO: check if the hash contains an access_token
+    //TODO: check if the hash contains an access_token by using teh getParameterByName
+    // and passing in "access_token"
 
     //TODO: return the access_token if it exists, otherwise return null
 }
@@ -29,7 +30,7 @@ function issueRedirect(){
 
 function getCurrentUserData(authToken){
 
-    //TODO: Update this request with the url to /api/v2/users/me
+    //TODO: Update this request with the url to https://api.mypurecloud.com/api/v2/users/me
     //TODO: Set the proper authorization header
     $.ajax({
             url: "UPDATE ME!!",
