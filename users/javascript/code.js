@@ -1,4 +1,4 @@
-var pureCloudSession = new PureCloudSession( 'inindca.com');
+var pureCloudSession = new PureCloudSession( 'mypurecloud.com');
 var usersapi = new UsersApi(pureCloudSession);
 
 redirectUrl = "http://localhost:8080/index.html"
@@ -23,7 +23,7 @@ function loadUsers(){
 }
 
 //TODO: update this call with your client id.
-pureCloudSession.authorize('6cf4b2d8-26ed-4f44-af81-932a8d8b9404', redirectUrl)
+pureCloudSession.authorize('TODO: UPDATE CLIENT ID HERE', redirectUrl)
     .done(function() {
         loadUsers();
     });
